@@ -1,0 +1,786 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Sports Betting Predictions API — powered by Rover
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: sports
+  - name: games
+  - name: predictions
+  - name: picks
+  - name: stats
+  - name: odds
+  - name: book-odds
+  - name: bankroll
+  - name: line-moves
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /sports:
+    get:
+      operationId: listSports
+      tags: [sports]
+      summary: List all sports
+      responses:
+        "200":
+          description: List of sports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sport"
+
+  /games:
+    get:
+      operationId: listGames
+      tags: [games]
+      summary: List games
+      parameters:
+        - name: sportId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: [upcoming, live, finished, null]
+      responses:
+        "200":
+          description: List of games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Game"
+
+  /games/upcoming:
+    get:
+      operationId: listUpcomingGames
+      tags: [games]
+      summary: List upcoming games grouped by sport
+      responses:
+        "200":
+          description: Upcoming games grouped by sport
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SportWithGames"
+
+  /games/{id}:
+    get:
+      operationId: getGame
+      tags: [games]
+      summary: Get game detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Game detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameDetail"
+        "404":
+          description: Not found
+
+  /predictions:
+    get:
+      operationId: listPredictions
+      tags: [predictions]
+      summary: List predictions
+      parameters:
+        - name: gameId
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of predictions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Prediction"
+
+  /predictions/{id}:
+    get:
+      operationId: getPrediction
+      tags: [predictions]
+      summary: Get prediction detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Prediction detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Prediction"
+        "404":
+          description: Not found
+
+  /picks:
+    get:
+      operationId: listPicks
+      tags: [picks]
+      summary: List user picks
+      responses:
+        "200":
+          description: List of picks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pick"
+    post:
+      operationId: createPick
+      tags: [picks]
+      summary: Create a pick
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickInput"
+      responses:
+        "201":
+          description: Created pick
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pick"
+
+  /picks/settle:
+    post:
+      operationId: settlePicks
+      tags: [picks]
+      summary: Auto-settle all pending picks based on finished game results
+      responses:
+        "200":
+          description: Settlement result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettleResult"
+
+  /picks/{id}:
+    patch:
+      operationId: updatePick
+      tags: [picks]
+      summary: Update pick result
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PickUpdate"
+      responses:
+        "200":
+          description: Updated pick
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pick"
+        "404":
+          description: Not found
+    delete:
+      operationId: deletePick
+      tags: [picks]
+      summary: Delete a pick
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /odds:
+    get:
+      operationId: listOdds
+      tags: [odds]
+      summary: List odds for all games
+      responses:
+        "200":
+          description: List of odds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GameOdds"
+
+  /odds/{gameId}:
+    get:
+      operationId: getOdds
+      tags: [odds]
+      summary: Get odds for a specific game
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Game odds
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameOdds"
+        "404":
+          description: Odds not found
+
+  /book-odds/{gameId}:
+    get:
+      operationId: getBookOdds
+      tags: [book-odds]
+      summary: Get multi-book odds for a specific game (line shopping)
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Per-book odds list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookOddsEntry"
+        "404":
+          description: Not found
+
+  /line-moves/{gameId}:
+    get:
+      operationId: getLineMoves
+      tags: [line-moves]
+      summary: Get line movement history for a game
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Line movement snapshots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LineMoveEntry"
+
+  /stats/summary:
+    get:
+      operationId: getStatsSummary
+      tags: [stats]
+      summary: Get overall prediction stats summary
+      responses:
+        "200":
+          description: Stats summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsSummary"
+
+  /stats/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [stats]
+      summary: Get top picks leaderboard
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  /bankroll:
+    get:
+      operationId: getBankroll
+      tags: [bankroll]
+      summary: Get bankroll status
+      responses:
+        "200":
+          description: Bankroll status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankrollStatus"
+    put:
+      operationId: updateBankroll
+      tags: [bankroll]
+      summary: Update bankroll settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BankrollUpdate"
+      responses:
+        "200":
+          description: Updated bankroll
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankrollStatus"
+
+  /bankroll/history:
+    get:
+      operationId: getBankrollHistory
+      tags: [bankroll]
+      summary: Get bankroll equity history for charting
+      responses:
+        "200":
+          description: Bankroll history entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BankrollHistoryEntry"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    Sport:
+      type: object
+      required: [id, name, icon]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        icon:
+          type: string
+
+    Game:
+      type: object
+      required: [id, sportId, sportName, homeTeam, awayTeam, scheduledAt, status, league]
+      properties:
+        id:
+          type: integer
+        sportId:
+          type: integer
+        sportName:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        scheduledAt:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, live, finished]
+        league:
+          type: string
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        predictionId:
+          type: ["integer", "null"]
+        odds:
+          $ref: "#/components/schemas/GameOdds"
+
+    GameDetail:
+      type: object
+      required: [id, sportId, sportName, homeTeam, awayTeam, scheduledAt, status, league]
+      properties:
+        id:
+          type: integer
+        sportId:
+          type: integer
+        sportName:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        scheduledAt:
+          type: string
+        status:
+          type: string
+          enum: [upcoming, live, finished]
+        league:
+          type: string
+        homeScore:
+          type: ["integer", "null"]
+        awayScore:
+          type: ["integer", "null"]
+        prediction:
+          $ref: "#/components/schemas/Prediction"
+        userPick:
+          $ref: "#/components/schemas/Pick"
+        odds:
+          $ref: "#/components/schemas/GameOdds"
+
+    SportWithGames:
+      type: object
+      required: [sport, games]
+      properties:
+        sport:
+          $ref: "#/components/schemas/Sport"
+        games:
+          type: array
+          items:
+            $ref: "#/components/schemas/Game"
+
+    Prediction:
+      type: object
+      required: [id, gameId, predictedWinner, confidencePct, analysis, sharpMove, confidenceTier, unitsRecommended, createdAt]
+      properties:
+        id:
+          type: integer
+        gameId:
+          type: integer
+        predictedWinner:
+          type: string
+        confidencePct:
+          type: integer
+        analysis:
+          type: string
+        keyFactors:
+          type: array
+          items:
+            type: string
+        sharpMove:
+          type: string
+          enum: [sharp_reverse, sharp_confirmed, public, neutral]
+        confidenceTier:
+          type: string
+          enum: [low, medium, high, elite]
+        unitsRecommended:
+          type: number
+        hitRateLast7:
+          type: ["number", "null"]
+        hitRateSeason:
+          type: ["number", "null"]
+        sampleSize:
+          type: ["integer", "null"]
+        contrarianCheck:
+          type: ["string", "null"]
+        bestCase:
+          type: ["string", "null"]
+        baseCase:
+          type: ["string", "null"]
+        worstCase:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    Pick:
+      type: object
+      required: [id, gameId, homeTeam, awayTeam, userPick, createdAt]
+      properties:
+        id:
+          type: integer
+        gameId:
+          type: integer
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        userPick:
+          type: string
+        stake:
+          type: ["number", "null"]
+        units:
+          type: ["number", "null"]
+        book:
+          type: ["string", "null"]
+        result:
+          type: ["string", "null"]
+          enum: [win, loss, push, null]
+        createdAt:
+          type: string
+
+    PickInput:
+      type: object
+      required: [gameId, userPick]
+      properties:
+        gameId:
+          type: integer
+        userPick:
+          type: string
+        stake:
+          type: ["number", "null"]
+        units:
+          type: ["number", "null"]
+        book:
+          type: ["string", "null"]
+
+    PickUpdate:
+      type: object
+      properties:
+        result:
+          type: ["string", "null"]
+          enum: [win, loss, push, null]
+
+    SettleResult:
+      type: object
+      required: [settled, details]
+      properties:
+        settled:
+          type: integer
+        details:
+          type: array
+          items:
+            type: object
+            required: [pickId, gameId, result]
+            properties:
+              pickId:
+                type: integer
+              gameId:
+                type: integer
+              result:
+                type: string
+
+    GameOdds:
+      type: object
+      required: [id, gameId, homeMoneyline, awayMoneyline, homeSpread, awaySpread, spreadJuice, overUnder, overJuice, underJuice, lastUpdated]
+      properties:
+        id:
+          type: integer
+        gameId:
+          type: integer
+        homeMoneyline:
+          type: integer
+        awayMoneyline:
+          type: integer
+        homeSpread:
+          type: number
+        awaySpread:
+          type: number
+        spreadJuice:
+          type: integer
+        overUnder:
+          type: number
+        overJuice:
+          type: integer
+        underJuice:
+          type: integer
+        lastUpdated:
+          type: string
+
+    BookOddsEntry:
+      type: object
+      required: [id, gameId, bookName, homeMoneyline, awayMoneyline, homeSpread, awaySpread, spreadJuice, overUnder, overJuice, underJuice, lastUpdated]
+      properties:
+        id:
+          type: integer
+        gameId:
+          type: integer
+        bookName:
+          type: string
+        homeMoneyline:
+          type: integer
+        awayMoneyline:
+          type: integer
+        homeSpread:
+          type: number
+        awaySpread:
+          type: number
+        spreadJuice:
+          type: integer
+        overUnder:
+          type: number
+        overJuice:
+          type: integer
+        underJuice:
+          type: integer
+        lastUpdated:
+          type: string
+
+    LineMoveEntry:
+      type: object
+      required: [id, gameId, bookName, homeMoneyline, awayMoneyline, homeSpread, overUnder, recordedAt]
+      properties:
+        id:
+          type: integer
+        gameId:
+          type: integer
+        bookName:
+          type: string
+        homeMoneyline:
+          type: integer
+        awayMoneyline:
+          type: integer
+        homeSpread:
+          type: number
+        overUnder:
+          type: number
+        recordedAt:
+          type: string
+
+    BankrollStatus:
+      type: object
+      required: [id, amount, unitPct, unitSize, streak, weekWins, weekLosses, weekPushes, unitMultiplier, dailyExposurePct, updatedAt]
+      properties:
+        id:
+          type: integer
+        amount:
+          type: number
+        unitPct:
+          type: number
+        unitSize:
+          type: number
+        streak:
+          type: integer
+        weekWins:
+          type: integer
+        weekLosses:
+          type: integer
+        weekPushes:
+          type: integer
+        preferredBook:
+          type: ["string", "null"]
+        unitMultiplier:
+          type: number
+        dailyExposurePct:
+          type: number
+        updatedAt:
+          type: string
+
+    BankrollUpdate:
+      type: object
+      properties:
+        amount:
+          type: ["number", "null"]
+        unitPct:
+          type: ["number", "null"]
+        streak:
+          type: ["integer", "null"]
+        weekWins:
+          type: ["integer", "null"]
+        weekLosses:
+          type: ["integer", "null"]
+        weekPushes:
+          type: ["integer", "null"]
+        preferredBook:
+          type: ["string", "null"]
+
+    BankrollHistoryEntry:
+      type: object
+      required: [id, date, amount, pnl, note]
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+        amount:
+          type: number
+        pnl:
+          type: number
+        note:
+          type: string
+
+    StatsSummary:
+      type: object
+      required: [totalPicks, wins, losses, pushes, winRate, totalGames, upcomingGames, activePredictions, unitPnl, roi, edgeHits]
+      properties:
+        totalPicks:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        pushes:
+          type: integer
+        winRate:
+          type: number
+        totalGames:
+          type: integer
+        upcomingGames:
+          type: integer
+        activePredictions:
+          type: integer
+        unitPnl:
+          type: number
+        roi:
+          type: number
+        edgeHits:
+          type: integer
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, gameId, homeTeam, awayTeam, predictedWinner, confidencePct, result]
+      properties:
+        rank:
+          type: integer
+        gameId:
+          type: integer
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        predictedWinner:
+          type: string
+        confidencePct:
+          type: integer
+        result:
+          type: ["string", "null"]
+        edge:
+          type: ["number", "null"]
+        units:
+          type: ["number", "null"]
+        sharpMove:
+          type: ["string", "null"]
+        confidenceTier:
+          type: ["string", "null"]
+        sport:
+          type: ["string", "null"]
