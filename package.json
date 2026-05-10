@@ -1,14 +1,21 @@
 {
-  "name": "workspace",
+  "name": "@workspace/scripts",
   "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {
-    "preinstall": "echo 'skipping'",
-    "build": "pnpm -r --if-present run build"
-  },
   "private": true,
+  "type": "module",
+  "scripts": {
+    "hello": "tsx ./src/hello.ts",
+    "seed-new-tables": "tsx ./src/seed-new-tables.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "drizzle-orm": "catalog:",
+    "pg": "^8.20.0"
+  },
   "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1"
+    "@types/node": "catalog:",
+    "@types/pg": "^8.18.0",
+    "tsx": "catalog:"
   }
 }
